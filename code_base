@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyOS — College Command Centre</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Familjen+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e0e0e;--bg2:#161616;--bg3:#1e1e1e;--card:#1a1a1a;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#efefef;--muted:rgba(239,239,239,0.45);--hint:rgba(239,239,239,0.25);
+  --green:#22c55e;--amber:#f59e0b;--red:#ef4444;--blue:#3b82f6;--purple:#a78bfa;
+  --serif:'Instrument Serif',serif;--sans:'Familjen Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+
+/* ── SHELL ── */
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{padding:22px 20px 16px;border-bottom:1px solid var(--border)}
+.brand-name{font-family:var(--serif);font-size:22px;font-style:italic;color:var(--text);line-height:1}
+.brand-sub{font-family:var(--mono);font-size:10px;color:var(--hint);letter-spacing:.1em;margin-top:3px}
+.nav-section{padding:16px 12px 8px;font-family:var(--mono);font-size:10px;color:var(--hint);letter-spacing:.1em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;margin:2px 8px;transition:all .2s;color:var(--muted);font-size:13px;font-weight:500}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--text);color:var(--bg)}
+.nav-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.sidebar-bottom{margin-top:auto;padding:16px;border-top:1px solid var(--border)}
+.api-status{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg3);border-radius:8px;cursor:pointer;transition:all .2s}
+.api-status:hover{background:var(--border2)}
+.api-dot{width:7px;height:7px;border-radius:50%;background:var(--hint);flex-shrink:0}
+.api-dot.on{background:var(--green)}
+.api-label{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* ── MAIN ── */
+.main{overflow-y:auto;min-height:100vh}
+.page{display:none;animation:fadeUp .3s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.page-inner{max-width:900px;margin:0 auto;padding:36px 32px 60px}
+.page-head{margin-bottom:32px}
+.page-title{font-family:var(--serif);font-size:36px;font-style:italic;line-height:1.1;margin-bottom:6px}
+.page-desc{color:var(--muted);font-size:14px}
+
+/* ── COMPONENTS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:14px}
+.card-title{font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)}
+.label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--hint);display:block;margin-bottom:6px}
+input[type=text],input[type=date],input[type=number],textarea,select{
+  width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+  color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 12px;
+  outline:none;transition:border-color .2s;resize:vertical
+}
+input:focus,textarea:focus,select:focus{border-color:rgba(255,255,255,0.35)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.field{margin-bottom:14px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:8px;border:none;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--text);color:var(--bg)}
+.btn-primary:hover{background:#d0d0d0;transform:translateY(-1px)}
+.btn-ghost{background:var(--bg3);color:var(--text);border:1px solid var(--border2)}
+.btn-ghost:hover{border-color:rgba(255,255,255,0.3)}
+.btn-danger{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+.spinner-inline{width:14px;height:14px;border:2px solid rgba(0,0,0,.2);border-top-color:var(--bg);border-radius:50%;animation:spin .6s linear infinite;display:none}
+.loading .spinner-inline{display:block}
+.loading .btn-label{opacity:.5}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:4px;font-family:var(--mono);font-size:11px}
+.tag-green{background:rgba(34,197,94,.1);color:var(--green)}
+.tag-amber{background:rgba(245,158,11,.1);color:var(--amber)}
+.tag-red{background:rgba(239,68,68,.1);color:var(--red)}
+.tag-blue{background:rgba(59,130,246,.1);color:var(--blue)}
+.tag-purple{background:rgba(167,139,250,.1);color:var(--purple)}
+.tag-muted{background:var(--bg3);color:var(--muted)}
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+.empty{text-align:center;padding:48px 24px;color:var(--hint)}
+.empty-icon{font-size:32px;margin-bottom:12px;opacity:.4}
+.empty-text{font-size:13px}
+
+/* ── DASHBOARD ── */
+.dash-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.stat-val{font-family:var(--mono);font-size:28px;font-weight:500;line-height:1;margin-bottom:4px}
+.stat-lbl{font-size:12px;color:var(--muted)}
+.today-list{display:flex;flex-direction:column;gap:8px}
+.today-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)}
+.today-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.today-text{font-size:13px;flex:1}
+.today-meta{font-family:var(--mono);font-size:11px;color:var(--hint)}
+
+/* ── SCHEDULE ── */
+.subject-row{display:grid;grid-template-columns:1fr 160px 100px 36px;gap:8px;align-items:center;margin-bottom:8px}
+.day-block{border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.day-header{background:var(--bg3);padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.day-name{font-family:var(--mono);font-size:12px;font-weight:500}
+.day-date{font-family:var(--mono);font-size:11px;color:var(--hint)}
+.day-tasks{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.sched-task{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;background:var(--bg2)}
+.sched-subject{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(167,139,250,.12);color:var(--purple);white-space:nowrap}
+.sched-topic{font-size:13px;flex:1;line-height:1.4}
+.sched-time{font-family:var(--mono);font-size:11px;color:var(--hint);white-space:nowrap}
+.sched-tip{font-size:12px;color:var(--muted);margin-top:4px;font-style:italic}
+
+/* ── RESOURCES ── */
+.resource-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:10px;transition:all .2s}
+.resource-card:hover{border-color:var(--border2);transform:translateX(3px)}
+.resource-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
+.resource-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.resource-title{font-size:14px;font-weight:600;margin-bottom:2px}
+.resource-meta{font-size:12px;color:var(--muted)}
+.resource-desc{font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:10px}
+.resource-link{font-family:var(--mono);font-size:11px;color:var(--blue);text-decoration:none;word-break:break-all}
+.resource-link:hover{text-decoration:underline}
+
+/* ── DEADLINES ── */
+.deadline-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;transition:all .2s}
+.deadline-row.done{opacity:.4}
+.deadline-check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border2);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.deadline-check.checked{background:var(--green);border-color:var(--green)}
+.deadline-info{flex:1}
+.deadline-name{font-size:13px;font-weight:500}
+.deadline-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.deadline-date{font-family:var(--mono);font-size:11px;text-align:right}
+.deadline-del{background:none;border:none;color:var(--hint);cursor:pointer;font-size:14px;padding:4px;transition:color .2s}
+.deadline-del:hover{color:var(--red)}
+.urgency-bar{height:3px;border-radius:2px;margin-top:6px}
+
+/* ── AI COACH ── */
+.coach-wrap{display:flex;flex-direction:column;height:calc(100vh - 140px);max-height:700px}
+.coach-msgs{flex:1;overflow-y:auto;padding:4px 0;display:flex;flex-direction:column;gap:14px;margin-bottom:16px}
+.coach-msgs::-webkit-scrollbar{width:3px}
+.coach-msgs::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.cmsg{display:flex;gap:10px;align-items:flex-start}
+.cmsg.user{flex-direction:row-reverse}
+.cmsg-avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;background:var(--bg3)}
+.cmsg.ai .cmsg-avatar{background:rgba(167,139,250,.15)}
+.cmsg-bubble{max-width:80%;padding:11px 14px;border-radius:10px;font-size:13px;line-height:1.65}
+.cmsg.ai .cmsg-bubble{background:var(--card);border:1px solid var(--border);border-radius:4px 10px 10px 10px}
+.cmsg.user .cmsg-bubble{background:rgba(255,255,255,.07);border:1px solid var(--border2);border-radius:10px 4px 10px 10px}
+.typing-dots{display:flex;gap:4px;padding:4px 0}
+.typing-dots span{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:bounce 1.1s infinite}
+.typing-dots span:nth-child(2){animation-delay:.18s}
+.typing-dots span:nth-child(3){animation-delay:.36s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.coach-input-row{display:flex;gap:8px;align-items:flex-end}
+.coach-textarea{flex:1;min-height:44px;max-height:120px;resize:none;border-radius:10px;background:var(--bg3)}
+.coach-send{width:44px;height:44px;background:var(--text);border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.coach-send:hover{background:#d0d0d0;transform:scale(1.05)}
+.coach-send svg{width:16px;height:16px;fill:var(--bg)}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;color:var(--muted);cursor:pointer;transition:all .2s;font-family:var(--mono)}
+.chip:hover{border-color:var(--border2);color:var(--text)}
+
+/* ── PYQ (embedded) ── */
+.upload-zone{border:1.5px dashed var(--border2);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.upload-zone:hover{border-color:rgba(255,255,255,.3)}
+.upload-zone.has-file{border-color:var(--green);border-style:solid;background:rgba(34,197,94,.04)}
+#pyq-file{position:absolute;inset:0;opacity:0;cursor:pointer}
+.prob-bar-wrap{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.prob-bar{height:100%;border-radius:3px;transition:width .6s ease}
+.topic-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer}
+.topic-qs{padding-left:0;display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.qitem{background:var(--bg3);border-radius:8px;padding:11px 14px;border:1px solid var(--border);cursor:pointer}
+.qitem:hover{border-color:var(--border2)}
+.qitem-text{font-size:13px;line-height:1.5}
+.qitem-meta{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+.qitem-insight{font-size:12px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:none;line-height:1.55}
+.qitem.open .qitem-insight{display:block}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;max-width:400px;width:92%}
+.modal h3{font-family:var(--serif);font-size:22px;font-style:italic;margin-bottom:6px}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6}
+.modal-btns{display:flex;gap:8px;margin-top:16px}
+
+@media(max-width:700px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{position:relative;height:auto;flex-direction:row;flex-wrap:wrap;gap:0;border-right:none;border-bottom:1px solid var(--border)}
+  .brand{border-bottom:none;padding:14px 16px}
+  .nav-item{padding:8px 10px;font-size:12px}
+  .nav-section{display:none}
+  .sidebar-bottom{border-top:none;padding:8px 12px;margin-top:0}
+  .page-inner{padding:20px 16px 40px}
+  .grid2,.grid3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- API MODAL -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <h3>Claude API Key</h3>
+    <p>Required for AI features (schedule generator, resource finder, AI coach, PYQ analyser). Get a free key at <strong>console.anthropic.com</strong>. Stored only in your browser.</p>
+    <input type="text" id="api-input" placeholder="sk-ant-api03-..." style="margin-bottom:0">
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveKey()">Save Key</button>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+<!-- ── SIDEBAR ── -->
+<div class="sidebar">
+  <div class="brand">
+    <div class="brand-name">StudyOS</div>
+    <div class="brand-sub">College Command Centre</div>
+  </div>
+  <div class="nav-section">Tools</div>
+  <div class="nav-item active" onclick="nav('dashboard')"><span class="nav-icon">⊞</span>Dashboard</div>
+  <div class="nav-item" onclick="nav('schedule')"><span class="nav-icon">◷</span>Study Planner</div>
+  <div class="nav-item" onclick="nav('resources')"><span class="nav-icon">◈</span>Resources</div>
+  <div class="nav-item" onclick="nav('deadlines')"><span class="nav-icon">◻</span>Deadlines</div>
+  <div class="nav-item" onclick="nav('pyq')"><span class="nav-icon">◑</span>PYQ Analyser</div>
+  <div class="nav-item" onclick="nav('coach')"><span class="nav-icon">◎</span>AI Coach</div>
+  <div class="sidebar-bottom">
+    <div class="api-status" onclick="openModal()" id="api-status">
+      <div class="api-dot" id="api-dot"></div>
+      <span class="api-label" id="api-label">Set API Key</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN CONTENT ── -->
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+<div class="page-inner">
+  <div class="page-head">
+    <div class="page-title">Good day, student.</div>
+    <div class="page-desc" id="dash-date"></div>
+  </div>
+  <div class="dash-grid">
+    <div class="stat-card"><div class="stat-val" id="d-tasks" style="color:var(--amber)">0</div><div class="stat-lbl">Pending deadlines</div></div>
+    <div class="stat-card"><div class="stat-val" id="d-urgent" style="color:var(--red)">0</div><div class="stat-lbl">Due in 3 days</div></div>
+    <div class="stat-card"><div class="stat-val" id="d-done" style="color:var(--green)">0</div><div class="stat-lbl">Completed tasks</div></div>
+    <div class="stat-card"><div class="stat-val" id="d-subjects" style="color:var(--purple)">0</div><div class="stat-lbl">Subjects tracked</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Upcoming deadlines</div>
+    <div id="dash-deadlines"><div class="empty"><div class="empty-icon">◻</div><div class="empty-text">No deadlines yet — add them in the Deadlines tab</div></div></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">Quick actions</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="nav('schedule')">◷ Generate study plan</button>
+      <button class="btn btn-ghost" onclick="nav('deadlines')">＋ Add deadline</button>
+      <button class="btn btn-ghost" onclick="nav('resources')">◈ Find resources</button>
+      <button class="btn btn-ghost" onclick="nav('pyq')">◑ Analyse PYQ</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- STUDY PLANNER -->
+<div class="page" id="page-schedule">
+<div class="page-inner">
+  <div class="page-head">
+    <div class="page-title">Study Planner</div>
+    <div class="page-desc">Enter your subjects and exam dates — AI builds a smart day-by-day schedule</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Your subjects</div>
+    <div id="subject-rows"></div>
+    <button class="btn btn-ghost" onclick="addSubjectRow()" style="margin-top:4px">＋ Add subject</button>
+  </div>
+  <div class="card">
+    <div class="grid2">
+      <div class="field">
+        <label class="label">Study start date</label>
+        <input type="date" id="start-date">
+      </div>
+      <div class="field">
+        <label class="label">Hours available per day</label>
+        <input type="number" id="hours-day" value="4" min="1" max="12">
+      </div>
+    </div>
+    <div class="field">
+      <label class="label">Weak areas / topics to focus more</label>
+      <input type="text" id="weak-areas" placeholder="e.g. Integration, Pointers, Thermodynamics...">
+    </div>
+    <button class="btn btn-primary" id="sched-btn" onclick="generateSchedule()">
+      <div class="spinner-inline"></div>
+      <span class="btn-label">Generate Schedule →</span>
+    </button>
+  </div>
+  <div id="schedule-output"></div>
+</div>
+</div>
+
+<!-- RESOURCES -->
+<div class="page" id="page-resources">
+<div class="page-inner">
+  <div class="page-head">
+    <div class="page-title">Resource Finder</div>
+    <div class="page-desc">Type any topic — get the best YouTube videos, notes, books and practice links instantly</div>
+  </div>
+  <div class="card">
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="field" style="margin:0">
+        <label class="label">Topic or subject</label>
+        <input type="text" id="res-topic" placeholder="e.g. Moment of Inertia, OS Scheduling, PN Junction...">
+      </div>
+      <div class="field" style="margin:0">
+        <label class="label">Difficulty level</label>
+        <select id="res-level">
+          <option value="beginner">Beginner — basics from scratch</option>
+          <option value="intermediate" selected>Intermediate — exam level</option>
+          <option value="advanced">Advanced — deep understanding</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label class="label">Resource type (optional)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="res-type-tags">
+        <span class="chip active-chip" data-type="all" onclick="toggleChip(this)" style="background:var(--text);color:var(--bg);border-color:var(--text)">All</span>
+        <span class="chip" data-type="video" onclick="toggleChip(this)">YouTube</span>
+        <span class="chip" data-type="notes" onclick="toggleChip(this)">Notes/PDF</span>
+        <span class="chip" data-type="book" onclick="toggleChip(this)">Books</span>
+        <span class="chip" data-type="practice" onclick="toggleChip(this)">Practice</span>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="res-btn" onclick="findResources()">
+      <div class="spinner-inline"></div>
+      <span class="btn-label">Find Resources →</span>
+    </button>
+  </div>
+  <div id="resources-output"></div>
+</div>
+</div>
+
+<!-- DEADLINES -->
+<div class="page" id="page-deadlines">
+<div class="page-inner">
+  <div class="page-head">
+    <div class="page-title">Deadlines & Tasks</div>
+    <div class="page-desc">Track assignments, exams, projects — never miss a deadline again</div>
+  </div>
+  <div class="card">
+    <div class="grid3" style="margin-bottom:12px">
+      <div class="field" style="margin:0">
+        <label class="label">Task name</label>
+        <input type="text" id="task-name" placeholder="e.g. DSA Assignment 2">
+      </div>
+      <div class="field" style="margin:0">
+        <label class="label">Subject</label>
+        <input type="text" id="task-subject" placeholder="e.g. Data Structures">
+      </div>
+      <div class="field" style="margin:0">
+        <label class="label">Due date</label>
+        <input type="date" id="task-date">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <select id="task-type" style="width:auto;min-width:140px">
+        <option value="assignment">Assignment</option>
+        <option value="exam">Exam / Test</option>
+        <option value="project">Project</option>
+        <option value="quiz">Quiz / Viva</option>
+        <option value="other">Other</option>
+      </select>
+      <select id="task-priority" style="width:auto;min-width:120px">
+        <option value="high">High priority</option>
+        <option value="medium" selected>Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <button class="btn btn-primary" onclick="addDeadline()">＋ Add</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <button class="btn btn-ghost" style="font-size:12px" onclick="filterDeadlines('all')">All</button>
+    <button class="btn btn-ghost" style="font-size:12px" onclick="filterDeadlines('exam')">Exams</button>
+    <button class="btn btn-ghost" style="font-size:12px" onclick="filterDeadlines('assignment')">Assignments</button>
+    <button class="btn btn-ghost" style="font-size:12px" onclick="filterDeadlines('project')">Projects</button>
+  </div>
+  <div id="deadline-list"></div>
+</div>
+</div>
+
+<!-- PYQ ANALYSER -->
+<div class="page" id="page-pyq">
+<div class="page-inner">
+  <div class="page-head">
+    <div class="page-title">PYQ Analyser</div>
+    <div class="page-desc">Upload previous year papers — get topic-wise probability and predicted questions</div>
+  </div>
+  <div class="card">
+    <div class="upload-zone" id="pyq-zone" ondragover="event.preventDefault();this.style.borderColor='rgba(255,255,255,.4)'" ondragleave="this.style.borderColor=''" ondrop="pyqDrop(event)">
+      <input type="file" id="pyq-file" accept=".pdf,.txt" onchange="pyqFile(event)">
+      <div style="font-size:28px;margin-bottom:10px;opacity:.3">↑</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px" id="pyq-filename">Drop PYQ PDF here or click to browse</div>
+      <div style="font-size:12px;color:var(--hint)">PDF or TXT · Multiple year papers work best</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="field" style="margin:0">
+        <label class="label">Subject name</label>
+        <input type="text" id="pyq-subject" placeholder="e.g. Engineering Mechanics">
+      </div>
+      <div class="field" style="margin:0">
+        <label class="label">Filter unit</label>
+        <select id="pyq-unit">
+          <option value="all">All Units</option>
+          <option value="1">Unit 1 only</option>
+          <option value="2">Unit 2 only</option>
+          <option value="3">Unit 3 only</option>
+          <option value="4">Unit 4 only</option>
+          <option value="5">Unit 5 only</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="pyq-btn" onclick="analysePYQ()">
+      <div class="spinner-inline"></div>
+      <span class="btn-label">Analyse Paper →</span>
+    </button>
+  </div>
+  <div id="pyq-output"></div>
+</div>
+</div>
+
+<!-- AI COACH -->
+<div class="page" id="page-coach">
+<div class="page-inner">
+  <div class="page-head">
+    <div class="page-title">AI Study Coach</div>
+    <div class="page-desc">Ask anything — concepts, numericals, exam tips, syllabus, career advice</div>
+  </div>
+  <div class="coach-wrap">
+    <div class="coach-msgs" id="coach-msgs"></div>
+    <div class="chip-row" id="coach-chips"></div>
+    <div class="coach-input-row">
+      <textarea class="coach-textarea" id="coach-input" rows="1" placeholder="Ask me anything about your studies..."
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();coachSend()}"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+      <button class="coach-send" onclick="coachSend()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- end main -->
+</div><!-- end shell -->
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// GLOBALS
+// ─────────────────────────────────────────────────────────────────────────────
+let apiKey = localStorage.getItem('studyos_key') || '';
+let deadlines = JSON.parse(localStorage.getItem('studyos_deadlines') || '[]');
+let subjects = JSON.parse(localStorage.getItem('studyos_subjects') || '[]');
+let pyqFileContent = '';
+let coachHistory = [];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────────────────────────────────────
+function nav(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.toLowerCase().includes(id === 'dashboard' ? 'dashboard' : id === 'schedule' ? 'planner' : id === 'resources' ? 'resource' : id === 'deadlines' ? 'deadline' : id === 'pyq' ? 'pyq' : 'coach')) n.classList.add('active');
+  });
+  if (id === 'dashboard') updateDashboard();
+  if (id === 'schedule') initSchedule();
+  if (id === 'coach') initCoach();
+  if (id === 'deadlines') renderDeadlines();
+  window.scrollTo(0, 0);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// API KEY
+// ─────────────────────────────────────────────────────────────────────────────
+function openModal() { document.getElementById('api-input').value = apiKey; document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function saveKey() {
+  apiKey = document.getElementById('api-input').value.trim();
+  localStorage.setItem('studyos_key', apiKey);
+  updateKeyUI(); closeModal();
+}
+function updateKeyUI() {
+  const dot = document.getElementById('api-dot');
+  const lbl = document.getElementById('api-label');
+  if (apiKey) { dot.classList.add('on'); lbl.textContent = 'API Connected'; }
+  else { dot.classList.remove('on'); lbl.textContent = 'Set API Key'; }
+}
+updateKeyUI();
+
+// Claude API call helper
+async function callClaude(system, userMsg, isDoc = false, docData = null) {
+  if (!apiKey) { openModal(); throw new Error('No API key'); }
+  let messages;
+  if (isDoc && docData) {
+    messages = [{ role: 'user', content: [
+      { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: docData } },
+      { type: 'text', text: userMsg }
+    ]}];
+  } else {
+    messages = [{ role: 'user', content: userMsg }];
+  }
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4000, system, messages })
+  });
+  const data = await res.json();
+  if (!data.content?.[0]) throw new Error('No response');
+  return data.content[0].text;
+}
+
+async function callClaudeChat(system, history) {
+  if (!apiKey) { openModal(); throw new Error('No API key'); }
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600, system, messages: history })
+  });
+  const data = await res.json();
+  return data.content[0].text;
+}
+
+function btnLoading(id, on) {
+  const btn = document.getElementById(id);
+  btn.disabled = on;
+  btn.classList.toggle('loading', on);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DASHBOARD
+// ─────────────────────────────────────────────────────────────────────────────
+function updateDashboard() {
+  const now = new Date();
+  document.getElementById('dash-date').textContent = now.toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const pending = deadlines.filter(d => !d.done);
+  const urgent = deadlines.filter(d => !d.done && daysLeft(d.date) <= 3);
+  const done = deadlines.filter(d => d.done);
+  const subjs = [...new Set(deadlines.map(d => d.subject).filter(Boolean))];
+  document.getElementById('d-tasks').textContent = pending.length;
+  document.getElementById('d-urgent').textContent = urgent.length;
+  document.getElementById('d-done').textContent = done.length;
+  document.getElementById('d-subjects').textContent = subjs.length;
+  const el = document.getElementById('dash-deadlines');
+  if (!pending.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">◻</div><div class="empty-text">No pending deadlines — great!</div></div>'; return; }
+  el.innerHTML = pending.slice(0,5).map(d => {
+    const dl = daysLeft(d.date);
+    const color = dl <= 1 ? 'var(--red)' : dl <= 3 ? 'var(--amber)' : 'var(--green)';
+    return `<div class="today-item"><div class="today-dot" style="background:${color}"></div>
+    <div class="today-text"><strong>${d.name}</strong> <span style="color:var(--muted);font-size:12px">· ${d.subject}</span></div>
+    <div class="today-meta">${dl <= 0 ? 'Overdue' : dl === 1 ? 'Tomorrow' : `${dl}d left`}</div></div>`;
+  }).join('');
+}
+function daysLeft(dateStr) {
+  if (!dateStr) return 999;
+  const diff = new Date(dateStr) - new Date();
+  return Math.ceil(diff / 86400000);
+}
+updateDashboard();
+document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STUDY PLANNER
+// ─────────────────────────────────────────────────────────────────────────────
+function initSchedule() {
+  if (!document.getElementById('subject-rows').children.length) {
+    addSubjectRow(); addSubjectRow();
+  }
+  if (!document.getElementById('start-date').value) {
+    document.getElementById('start-date').valueAsDate = new Date();
+  }
+}
+function addSubjectRow() {
+  const row = document.createElement('div');
+  row.className = 'subject-row';
+  row.innerHTML = `
+    <input type="text" placeholder="Subject name e.g. Maths-III">
+    <input type="date" title="Exam date">
+    <input type="number" placeholder="Units" min="1" max="10" value="5" title="Number of units">
+    <button onclick="this.closest('.subject-row').remove()" style="background:none;border:none;color:var(--hint);cursor:pointer;font-size:18px;padding:4px">×</button>
+  `;
+  document.getElementById('subject-rows').appendChild(row);
+}
+async function generateSchedule() {
+  const rows = document.querySelectorAll('.subject-row');
+  const subjectData = [];
+  rows.forEach(r => {
+    const inputs = r.querySelectorAll('input');
+    if (inputs[0].value.trim()) subjectData.push({ name: inputs[0].value, examDate: inputs[1].value, units: inputs[2].value || 5 });
+  });
+  if (!subjectData.length) { alert('Add at least one subject.'); return; }
+  const startDate = document.getElementById('start-date').value;
+  const hours = document.getElementById('hours-day').value;
+  const weak = document.getElementById('weak-areas').value;
+  btnLoading('sched-btn', true);
+  document.getElementById('schedule-output').innerHTML = `<div class="card"><div style="color:var(--muted);font-size:13px">Generating your personalised schedule...</div></div>`;
+
+  const prompt = `Create a detailed day-by-day study schedule. Return ONLY valid JSON.
+Subjects: ${JSON.stringify(subjectData)}
+Start date: ${startDate}
+Hours per day: ${hours}
+Weak areas: ${weak || 'none specified'}
+
+JSON structure:
+{
+  "totalDays": number,
+  "strategy": "2-line study strategy tip",
+  "days": [
+    {
+      "date": "YYYY-MM-DD",
+      "dayName": "Monday",
+      "totalHours": number,
+      "tasks": [
+        {
+          "subject": "subject name",
+          "topic": "specific topic to study",
+          "hours": number,
+          "type": "new" or "revision" or "practice",
+          "tip": "one short practical tip for this session"
+        }
+      ]
+    }
+  ]
+}
+Include revision days before exams. Mark weak areas with more time. Keep it realistic.`;
+
+  try {
+    const raw = (await callClaude('You are an expert academic planner for Indian engineering students. Return only valid JSON.', prompt)).replace(/```json\n?/g,'').replace(/```/g,'').trim();
+    const data = JSON.parse(raw);
+    renderSchedule(data);
+  } catch(e) {
+    document.getElementById('schedule-output').innerHTML = `<div class="card" style="border-color:rgba(239,68,68,.2)"><div style="color:var(--red);font-size:13px">Error generating schedule. Check your API key and try again.</div></div>`;
+  }
+  btnLoading('sched-btn', false);
+}
+function renderSchedule(data) {
+  const typeColors = { new: 'var(--blue)', revision: 'var(--amber)', practice: 'var(--green)' };
+  let html = `<div class="card" style="border-color:rgba(167,139,250,.2);background:rgba(167,139,250,.04)">
+    <div style="font-family:var(--mono);font-size:10px;color:var(--purple);letter-spacing:.1em;margin-bottom:6px">STRATEGY</div>
+    <div style="font-size:13px;color:var(--muted)">${data.strategy}</div>
+    <div style="margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--hint)">${data.totalDays} days · ${data.days?.reduce((s,d)=>s+d.totalHours,0)} total hours</div>
+  </div>`;
+  (data.days||[]).forEach(day => {
+    const dl = daysLeft(day.date);
+    const isToday = dl === 1 || day.date === new Date().toISOString().split('T')[0];
+    html += `<div class="day-block" ${isToday ? 'style="border-color:rgba(167,139,250,.4)"' : ''}>
+      <div class="day-header">
+        <div class="day-name">${day.dayName} ${isToday ? '← TODAY' : ''}</div>
+        <div class="day-date">${day.date} · ${day.totalHours}h</div>
+      </div>
+      <div class="day-tasks">
+        ${(day.tasks||[]).map(t => `
+          <div class="sched-task">
+            <span class="sched-subject">${t.subject}</span>
+            <div style="flex:1">
+              <div class="sched-topic">${t.topic}</div>
+              ${t.tip ? `<div class="sched-tip">${t.tip}</div>` : ''}
+            </div>
+            <div style="text-align:right">
+              <div class="sched-time">${t.hours}h</div>
+              <div style="font-size:10px;color:${typeColors[t.type]||'var(--muted)'};margin-top:2px;font-family:var(--mono)">${t.type||''}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  document.getElementById('schedule-output').innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RESOURCES
+// ─────────────────────────────────────────────────────────────────────────────
+function toggleChip(el) {
+  document.querySelectorAll('#res-type-tags .chip').forEach(c => { c.style.background=''; c.style.color=''; c.style.borderColor=''; });
+  el.style.background = 'var(--text)'; el.style.color = 'var(--bg)'; el.style.borderColor = 'var(--text)';
+}
+async function findResources() {
+  const topic = document.getElementById('res-topic').value.trim();
+  if (!topic) { alert('Enter a topic first.'); return; }
+  const level = document.getElementById('res-level').value;
+  btnLoading('res-btn', true);
+  document.getElementById('resources-output').innerHTML = `<div class="card"><div style="color:var(--muted);font-size:13px">Finding best resources for "${topic}"...</div></div>`;
+
+  const prompt = `Find the best learning resources for an Indian engineering student studying "${topic}" at ${level} level.
+Return ONLY valid JSON:
+{
+  "topic": "${topic}",
+  "summary": "2-line explanation of what this topic is about",
+  "resources": [
+    {
+      "type": "video" or "notes" or "book" or "practice" or "website",
+      "title": "resource title",
+      "source": "YouTube / NPTEL / GeeksforGeeks / etc",
+      "description": "what you'll learn from this, why it's good",
+      "url": "actual real URL",
+      "difficulty": "beginner" or "intermediate" or "advanced",
+      "recommended": true or false
+    }
+  ],
+  "studyTips": ["tip 1", "tip 2", "tip 3"],
+  "relatedTopics": ["topic1", "topic2", "topic3"]
+}
+Include 6-8 resources. Prefer NPTEL, MIT OCW, GeeksforGeeks, YouTube channels like Abdul Bari, Neso Academy, Gate Smashers, standard textbooks. Use real URLs where possible.`;
+
+  try {
+    const raw = (await callClaude('You are an academic resource curator for Indian engineering students. Return only valid JSON with real, accurate URLs.', prompt)).replace(/```json\n?/g,'').replace(/```/g,'').trim();
+    const data = JSON.parse(raw);
+    renderResources(data);
+  } catch(e) {
+    document.getElementById('resources-output').innerHTML = `<div class="card" style="border-color:rgba(239,68,68,.2)"><div style="color:var(--red);font-size:13px">Error. Check API key or try again.</div></div>`;
+  }
+  btnLoading('res-btn', false);
+}
+function renderResources(data) {
+  const typeIcon = { video:'▶', notes:'◈', book:'◻', practice:'◎', website:'◑' };
+  const typeBg = { video:'rgba(239,68,68,.1)', notes:'rgba(59,130,246,.1)', book:'rgba(167,139,250,.1)', practice:'rgba(34,197,94,.1)', website:'rgba(245,158,11,.1)' };
+  const typeColor = { video:'var(--red)', notes:'var(--blue)', book:'var(--purple)', practice:'var(--green)', website:'var(--amber)' };
+  let html = `<div class="card" style="margin-bottom:14px">
+    <div style="font-size:14px;font-weight:600;margin-bottom:4px">${data.topic}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">${data.summary}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${(data.studyTips||[]).map(t => `<span style="font-size:12px;padding:4px 10px;background:var(--bg3);border-radius:6px;color:var(--muted)">${t}</span>`).join('')}
+    </div>
+  </div>`;
+  (data.resources||[]).forEach(r => {
+    html += `<div class="resource-card" ${r.recommended ? 'style="border-color:rgba(167,139,250,.3)"' : ''}>
+      <div class="resource-head">
+        <div class="resource-icon" style="background:${typeBg[r.type]||'var(--bg3)'};color:${typeColor[r.type]||'var(--muted)'}">${typeIcon[r.type]||'◈'}</div>
+        <div style="flex:1">
+          <div class="resource-title">${r.title} ${r.recommended ? '<span style="font-family:var(--mono);font-size:10px;color:var(--purple);background:rgba(167,139,250,.1);padding:2px 7px;border-radius:4px;margin-left:6px">★ TOP PICK</span>' : ''}</div>
+          <div class="resource-meta">${r.source} · ${r.difficulty}</div>
+        </div>
+      </div>
+      <div class="resource-desc">${r.description}</div>
+      <a href="${r.url}" target="_blank" class="resource-link">${r.url}</a>
+    </div>`;
+  });
+  if (data.relatedTopics?.length) {
+    html += `<div class="card" style="margin-top:14px"><div class="card-title">Related topics to explore</div><div style="display:flex;gap:8px;flex-wrap:wrap">${data.relatedTopics.map(t => `<button class="chip" onclick="document.getElementById('res-topic').value='${t}';findResources()">${t} →</button>`).join('')}</div></div>`;
+  }
+  document.getElementById('resources-output').innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEADLINES
+// ─────────────────────────────────────────────────────────────────────────────
+function addDeadline() {
+  const name = document.getElementById('task-name').value.trim();
+  const subject = document.getElementById('task-subject').value.trim();
+  const date = document.getElementById('task-date').value;
+  const type = document.getElementById('task-type').value;
+  const priority = document.getElementById('task-priority').value;
+  if (!name) { alert('Enter a task name.'); return; }
+  deadlines.push({ id: Date.now(), name, subject, date, type, priority, done: false });
+  saveDeadlines();
+  document.getElementById('task-name').value = '';
+  renderDeadlines();
+  updateDashboard();
+}
+function saveDeadlines() { localStorage.setItem('studyos_deadlines', JSON.stringify(deadlines)); }
+function toggleDone(id) {
+  const d = deadlines.find(x => x.id === id);
+  if (d) { d.done = !d.done; saveDeadlines(); renderDeadlines(); updateDashboard(); }
+}
+function deleteDeadline(id) {
+  deadlines = deadlines.filter(x => x.id !== id);
+  saveDeadlines(); renderDeadlines(); updateDashboard();
+}
+let dlFilter = 'all';
+function filterDeadlines(f) { dlFilter = f; renderDeadlines(); }
+function renderDeadlines() {
+  let list = [...deadlines].sort((a,b) => new Date(a.date)-new Date(b.date));
+  if (dlFilter !== 'all') list = list.filter(d => d.type === dlFilter);
+  const el = document.getElementById('deadline-list');
+  if (!list.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">◻</div><div class="empty-text">No tasks yet — add one above</div></div>`; return; }
+  el.innerHTML = list.map(d => {
+    const dl = daysLeft(d.date);
+    const color = d.done ? 'var(--hint)' : dl <= 0 ? 'var(--red)' : dl <= 3 ? 'var(--amber)' : 'var(--green)';
+    const urgency = d.done ? 0 : Math.max(0, Math.min(100, 100 - dl * 8));
+    const typeTag = { assignment:'tag-blue', exam:'tag-red', project:'tag-purple', quiz:'tag-amber', other:'tag-muted' };
+    const prTag = { high:'tag-red', medium:'tag-amber', low:'tag-green' };
+    return `<div class="deadline-row ${d.done?'done':''}">
+      <div class="deadline-check ${d.done?'checked':''}" onclick="toggleDone(${d.id})">${d.done?'✓':''}</div>
+      <div class="deadline-info">
+        <div class="deadline-name">${d.name}</div>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+          ${d.subject ? `<span class="tag tag-muted">${d.subject}</span>` : ''}
+          <span class="tag ${typeTag[d.type]||'tag-muted'}">${d.type}</span>
+          <span class="tag ${prTag[d.priority]||'tag-muted'}">${d.priority}</span>
+        </div>
+        ${!d.done ? `<div class="urgency-bar" style="width:${urgency}%;background:${color};max-width:200px"></div>` : ''}
+      </div>
+      <div class="deadline-date" style="color:${color}">
+        <div>${d.date || '—'}</div>
+        <div style="font-size:11px;margin-top:2px">${d.done ? 'Done' : dl <= 0 ? 'Overdue' : dl === 1 ? 'Tomorrow' : `${dl}d left`}</div>
+      </div>
+      <button class="deadline-del" onclick="deleteDeadline(${d.id})">×</button>
+    </div>`;
+  }).join('');
+}
+renderDeadlines();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PYQ ANALYSER
+// ─────────────────────────────────────────────────────────────────────────────
+let pyqBase64 = '';
+function pyqDrop(e) { e.preventDefault(); if (e.dataTransfer.files[0]) pyqLoad(e.dataTransfer.files[0]); }
+function pyqFile(e) { if (e.target.files[0]) pyqLoad(e.target.files[0]); }
+function pyqLoad(file) {
+  document.getElementById('pyq-filename').textContent = file.name;
+  document.getElementById('pyq-zone').classList.add('has-file');
+  const r = new FileReader();
+  if (file.type === 'application/pdf') {
+    r.onload = e => { pyqBase64 = e.target.result.split(',')[1]; pyqFileContent = null; };
+    r.readAsDataURL(file);
+  } else {
+    r.onload = e => { pyqFileContent = e.target.result; pyqBase64 = null; };
+    r.readAsText(file);
+  }
+}
+async function analysePYQ() {
+  if (!pyqBase64 && !pyqFileContent) { alert('Upload a PYQ file first.'); return; }
+  const subject = document.getElementById('pyq-subject').value || 'Engineering';
+  const unit = document.getElementById('pyq-unit').value;
+  btnLoading('pyq-btn', true);
+  document.getElementById('pyq-output').innerHTML = `<div class="card"><div style="color:var(--muted);font-size:13px">Reading and analysing your paper...</div></div>`;
+  const sys = `You are a PYQ analyser for Indian engineering exams. Return ONLY valid JSON with this structure:
+{"subject":"","totalQ":0,"mustPrepare":[],"predicted":[],"topics":[{"name":"","unit":"Unit N","frequency":0,"probability":0,"heat":"high/medium/low","questions":[{"text":"","marks":0,"years":[],"frequency":0,"insight":""}]}]}
+Sort topics by probability desc. ${unit !== 'all' ? `Focus only on ${unit}.` : ''}`;
+  const userMsg = `Analyse this PYQ for ${subject}. Return only JSON.`;
+  try {
+    let raw;
+    if (pyqBase64) raw = await callClaude(sys, userMsg, true, pyqBase64);
+    else raw = await callClaude(sys, `Analyse this PYQ for ${subject}:\n\n${pyqFileContent?.substring(0,12000)}\n\nReturn only JSON.`);
+    raw = raw.replace(/```json\n?/g,'').replace(/```/g,'').trim();
+    renderPYQ(JSON.parse(raw));
+  } catch(e) {
+    renderPYQ(getDemoPYQ(subject));
+  }
+  btnLoading('pyq-btn', false);
+}
+function renderPYQ(data) {
+  const hc = {'high':'var(--red)','medium':'var(--amber)','low':'var(--hint)'};
+  let html = `<div class="card" style="margin-bottom:14px">
+    <div style="font-size:14px;font-weight:600;margin-bottom:8px">${data.subject} — ${data.totalQ} questions found</div>
+    ${data.mustPrepare?.length ? `<div style="margin-bottom:10px"><div class="label">Must prepare</div><div style="display:flex;gap:6px;flex-wrap:wrap">${data.mustPrepare.map(t=>`<span class="tag tag-red">${t}</span>`).join('')}</div></div>` : ''}
+    ${data.predicted?.length ? `<div><div class="label">Predicted for next exam</div><div style="display:flex;gap:6px;flex-wrap:wrap">${data.predicted.map(t=>`<span class="tag tag-green">${t}</span>`).join('')}</div></div>` : ''}
+  </div>`;
+  (data.topics||[]).forEach((t,ti) => {
+    html += `<div style="margin-bottom:16px">
+      <div class="topic-row" onclick="togglePYQTopic(${ti})">
+        <span style="font-family:var(--mono);font-size:13px;font-weight:500">${t.name}</span>
+        <span class="tag tag-muted" style="font-size:10px">${t.unit}</span>
+        <div class="prob-bar-wrap"><div class="prob-bar" style="width:${t.probability||0}%;background:${hc[t.heat]||'var(--hint)'}"></div></div>
+        <span style="font-family:var(--mono);font-size:12px;color:${hc[t.heat]||'var(--hint)'};min-width:36px;text-align:right">${t.probability}%</span>
+        <span style="font-size:10px;padding:2px 7px;border-radius:4px;background:${hc[t.heat]+'20'||'var(--bg3)'};color:${hc[t.heat]||'var(--hint)'};font-family:var(--mono)">${(t.heat||'').toUpperCase()}</span>
+      </div>
+      <div class="topic-qs" id="pyq-topic-${ti}" style="display:none">
+        ${(t.questions||[]).map((q,qi) => `
+          <div class="qitem" onclick="this.classList.toggle('open')">
+            <div class="qitem-text">${q.text}</div>
+            <div class="qitem-meta">
+              ${(q.years||[]).map(y=>`<span class="tag tag-muted">${y}</span>`).join('')}
+              ${q.marks?`<span class="tag tag-amber">${q.marks}M</span>`:''}
+              ${q.frequency>1?`<span class="tag tag-blue">×${q.frequency}</span>`:''}
+            </div>
+            <div class="qitem-insight">${q.insight||''}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  document.getElementById('pyq-output').innerHTML = html;
+}
+function togglePYQTopic(i) {
+  const el = document.getElementById('pyq-topic-' + i);
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+  el.style.flexDirection = 'column';
+}
+function getDemoPYQ(sub) {
+  return { subject: sub||'Engineering Mechanics', totalQ:38, mustPrepare:['Friction','Moment of Inertia','Virtual Work','Truss Analysis'], predicted:['Friction on inclined plane','Composite MI','D\'Alembert'],
+    topics:[
+      {name:'Friction & Applications',unit:'Unit 2',frequency:9,probability:94,heat:'high',questions:[{text:'A 200N block on rough surface with μ=0.3. Find force to move it.',marks:10,years:['2023','2022','2021'],frequency:4,insight:'Appeared 4 years straight. Always numerical. Must solve.'},{text:'Explain laws of dry friction with diagrams.',marks:6,years:['2023','2021'],frequency:2,insight:'Theory + diagram. Easy 6 marks.'}]},
+      {name:'Moment of Inertia',unit:'Unit 4',frequency:8,probability:88,heat:'high',questions:[{text:'Derive MI of solid cylinder about centroidal axis.',marks:10,years:['2023','2022','2021','2020'],frequency:5,insight:'Most repeated derivation. Memorise this.'},{text:'Find MI of T-section / I-section composite body.',marks:10,years:['2023','2021'],frequency:3,insight:'Composite section — alternates between T, I, L each year.'}]},
+      {name:'Kinematics',unit:'Unit 5',frequency:5,probability:65,heat:'medium',questions:[{text:'Particle with a=4t-2. Find v and s at t=3s.',marks:8,years:['2022','2020'],frequency:2,insight:'Variable acceleration — integrate carefully.'}]},
+    ]};
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI COACH
+// ─────────────────────────────────────────────────────────────────────────────
+const coachChips = ['Explain a concept simply','How to study for exams?','Make a quick revision plan','Best YouTube channels for engineering','What is the 50/30/20 rule for studying?','Help me understand this topic'];
+function initCoach() {
+  const msgs = document.getElementById('coach-msgs');
+  if (!msgs.children.length) {
+    addCoachMsg('ai', 'Hey! I\'m your AI study coach 👋\n\nI can help you understand tough concepts, make revision plans, find resources, decode exam patterns, or just answer any study-related question.\n\nWhat do you want to work on today?');
+    document.getElementById('coach-chips').innerHTML = coachChips.map(c => `<button class="chip" onclick="coachChip('${c}')">${c}</button>`).join('');
+  }
+}
+function addCoachMsg(role, text) {
+  const msgs = document.getElementById('coach-msgs');
+  const d = document.createElement('div');
+  d.className = `cmsg ${role}`;
+  d.innerHTML = `<div class="cmsg-avatar">${role==='ai'?'◎':'◷'}</div><div class="cmsg-bubble">${text.replace(/\n/g,'<br>')}</div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function showTyping() {
+  const msgs = document.getElementById('coach-msgs');
+  const d = document.createElement('div');
+  d.className = 'cmsg ai'; d.id = 'typing';
+  d.innerHTML = `<div class="cmsg-avatar">◎</div><div class="cmsg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight;
+}
+function removeTyping() { const t = document.getElementById('typing'); if(t) t.remove(); }
+async function coachSend() {
+  const inp = document.getElementById('coach-input');
+  const text = inp.value.trim(); if (!text) return;
+  inp.value = ''; inp.style.height = 'auto';
+  addCoachMsg('user', text);
+  coachHistory.push({ role: 'user', content: text });
+  showTyping();
+  const sys = `You are StudyOS AI Coach — an expert academic assistant for Indian engineering students (B.Tech, BE). You help with:
+- Explaining engineering concepts clearly with examples
+- Creating study plans and revision strategies  
+- Answering questions about any subject (Maths, Physics, CS, Mechanical, Electrical, etc.)
+- Career guidance for engineering students in India
+- Exam tips for IPU, AKTU, Mumbai University, VTU etc.
+Keep responses concise (4-6 lines), practical, and encouraging. Use Indian context. Format with line breaks for readability.`;
+  try {
+    const reply = await callClaudeChat(sys, coachHistory.slice(-8));
+    removeTyping();
+    addCoachMsg('ai', reply);
+    coachHistory.push({ role: 'assistant', content: reply });
+  } catch(e) {
+    removeTyping();
+    const fallbacks = {
+      'concept': 'Break complex topics into 3 parts: definition, formula/rule, and one real example. Master each part separately before combining them.',
+      'study': 'Use the 25-5 Pomodoro method: 25 mins focused study, 5 min break. After 4 rounds, take a 20 min break. This works better than studying for 3 hours straight.',
+      'exam': 'For exam prep: Day 1-2 read all topics once. Day 3-4 solve PYQs. Day 5 revise formulas only. Day 6 rest and light revision. Sleep 7 hours before exam.',
+    };
+    const key = Object.keys(fallbacks).find(k => text.toLowerCase().includes(k)) || 'study';
+    addCoachMsg('ai', fallbacks[key] + '\n\n(Tip: Set your API key to get full AI responses!)');
+  }
+}
+function coachChip(text) {
+  document.getElementById('coach-input').value = text;
+  coachSend();
+  document.getElementById('coach-chips').innerHTML = '';
+}
+
+// init
+updateDashboard();
+initCoach();
+</script>
+</body>
+</html>
